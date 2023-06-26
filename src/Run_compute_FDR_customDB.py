@@ -78,7 +78,6 @@ def compute_fdr(args):
     os.makedirs(fdr_dir)
     
     all_combinedfn = os.path.join(workflow_dir, 'MSGF_combinedtsv','MSGF_tsvdir.tsv')
-    print(all_combinedfn)
     
     fdr = float(0.01)
     PeptideLevel_score_FDR = os.path.join(fdr_dir, 'PeptideLevel_score_FDR_values.txt')
