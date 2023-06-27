@@ -81,9 +81,12 @@ rm ncbi-blast-2.14.0+-x64-linux.tar.gz
 ```
 export BLASTDB=$HOME/Atlantic_Salmon_Proteogenomics_Project/data/reference/Actinopterygii/Actinopterygii_refseq/blast_db
 ```
-**c. Download RefSeq fasta and prepare blast database**
+**c. Download RefSeq fasta**
+ftp://ftp.ncbi.nlm.nih.gov/refseq/release/vertebrate_other/*.protein.faa.gz 
+
+**d. Prepare blast database**
 ```
-python -u ./src/Prep_blastdb_Actinopterygii_RefSeq.py --ouput ./data/reference/Actinopterygii/Actinopterygii_refseq --taxon_list ./data/reference/Actinopterygii/ancestor7898_proteomes.tsv --makeblastdb ./src/ncbi-blast-2.14.0+/bin/makeblastdb --email email@email.com
+python -u ./src/Prep_blastdb_Actinopterygii_RefSeq.py --input [vertebrate_other] --ouput ./data/reference/Actinopterygii/Actinopterygii_refseq --taxon_list ./data/reference/Actinopterygii/ancestor7898_proteomes.tsv --makeblastdb ./src/ncbi-blast-2.14.0+/bin/makeblastdb
 ```
 
 </dd></dl></dd></dl>
@@ -96,13 +99,13 @@ python -u ./src/Prep_blastdb_Actinopterygii_RefSeq.py --ouput ./data/reference/A
 Files
 ---------------
 **1. Download "Atlantic_Salmon_Proteogenomics_Project/data" directory**
-[Atlantic_Salmon_Proteogenomics_Project.tar.gz](https://drive.google.com/file/d/1bxTPKgmlXYKpq7-7HzsFn3AHYSNyRyUN/view?usp=drive_link)<br />
+[Atlantic_Salmon_Proteogenomics_Project.tar.gz](https://drive.google.com/file/d/1xjPzQTb1HtrY-Zfui1ylwDvVCGLmKgVr/view?usp=sharing)<br />
 
 
 Pipeline
 ---------------
 >**Note** 
->To enable local Blastx and BlastP runs, this pipeline will use a smaller database representing RefSeq sequences from 114 taxon ids with Actinopterygii (7898) as the ancestor.
+>To enable local Blastx and BlastP runs, this pipeline will use a smaller database representing RefSeq sequences from 106 taxon ids with Actinopterygii (7898) as the ancestor.
 
 <!-- 1. SpliceDB construction -->
 ### 1. SpliceDB construction ###

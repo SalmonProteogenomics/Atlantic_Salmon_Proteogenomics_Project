@@ -1,24 +1,22 @@
 # -*- coding: utf-8 -*-
 import os
 import time
-import urllib.request
-import requests
 import argparse
 from subprocess import Popen, PIPE, CalledProcessError
 from parse_reference_files import readFasta
+import re
 
 base_dir = os.path.abspath(os.path.join(__file__ ,"../.."))
 
 parser = argparse.ArgumentParser()
+parser.add_argument("-input", "--input", dest = "input",\
+                    help="Directory containing downloaded protein.faa.gz files from RefSeq")
 parser.add_argument("-ouput", "--ouput", dest = "ouput",\
                     default = 'data/reference/Actinopterygii/Actinopterygii_refseq',\
                     help="")
 parser.add_argument("-t", "--taxon_list", dest = "taxon_list",\
                     default = 'data/reference/Actinopterygii/ancestor7898_proteomes.tsv',\
                     help="list of taxon ids with ancestor:7898 from UniProt")
-parser.add_argument("-email", "--email", dest = "email",\
-                    default = '',\
-                    help="email to use for eutils")
 parser.add_argument("-makeblastdb", "--makeblastdb", dest = "makeblastdb", \
                     default = 'src/ncbi-blast-2.14.0+/bin/makeblastdb', \
                     help="makeblastdb path")
@@ -27,20 +25,18 @@ args = parser.parse_args()
 
 base_dir = os.path.abspath(os.path.join(__file__ ,"../.."))
 
+uniprot_taxlist_fn = os.path.join(base_dir, os.path.normpath(args.taxon_list))
+if not os.path.isfile(uniprot_taxlist_fn):
+    raise ValueError('DNE: ', uniprot_taxlist_fn)
 
 blast_path = os.path.join(base_dir, os.path.normpath(args.makeblastdb))
 if not os.path.isfile(blast_path):
     err_msg = 'blast path DNE'
     raise ValueError(err_msg)
 
-eutils_email = str(args.email)
-print(eutils_email)
-if not eutils_email:
-    raise ValueError('no eutils email provided')
-
-uniprot_taxlist_fn = os.path.join(base_dir, os.path.normpath(args.taxon_list))
-if not os.path.isfile(uniprot_taxlist_fn):
-    raise ValueError('DNE: ', uniprot_taxlist_fn)
+input_dir = os.path.normpath(args.input)
+if not os.path.isdir(input_dir):
+    raise ValueError('Check input directory path...')
 
 ouput_path = os.path.join(base_dir, os.path.normpath(args.ouput))
 fasta_directory = os.path.join(ouput_path, 'fasta')
@@ -48,12 +44,10 @@ blast_db_dir = os.path.join(ouput_path, 'blast_db')
 for directory in [fasta_directory, blast_db_dir]:
     if not os.path.isdir(directory):
         os.makedirs(directory)
- 
 
-eutils_base = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/"                
-esearch = "esearch.fcgi?"                                                    
-efetch = "efetch.fcgi?"                                                      
 
+sciname_to_taxon = {}
+scientific_names_list = set()
 with open(uniprot_taxlist_fn,'r') as infile:
     for i,line in enumerate(infile):
         sp = line.rstrip('\n').split('\t')
@@ -61,30 +55,66 @@ with open(uniprot_taxlist_fn,'r') as infile:
             colidx = {x:xi for xi,x in enumerate(sp)}
         else:
             taxon = sp[colidx['Taxon Id']]
-            output_fasta = os.path.join(fasta_directory, taxon+'_refseq.fasta')
-            if not os.path.isfile(output_fasta):
-                print(taxon)
+            Scientific_name = sp[colidx['Scientific name']]
+            scientific_names_list.add(Scientific_name)
+            sciname_to_taxon[Scientific_name] = taxon
+print('taxons: ', len(scientific_names_list))
 
-                query = 'db=protein&term=txid'+taxon+'[Organism]'
-                
-                url = eutils_base+ esearch + query +"&usehistory=y"
-                data = requests.get(url)
-                #print(url)
-                content = data.content.decode('utf8')
-                
-                query_key = content.split('<QueryKey>')[1].split('</QueryKey>')[0]
-                webenv = content.split('<WebEnv>')[1].split('</WebEnv>')[0]
-                
-                url = eutils_base +\
-                      efetch +\
-                      "db=protein" \
-                      + "&query_key=" + query_key + "&WebEnv=" + webenv + \
-                      "&rettype=fasta" + "&retmode=text"\
-                      +"&email="+eutils_email
-                
-                #print(url)                
-                urllib.request.urlretrieve(url, output_fasta)
-                
+
+def readFasta_taxon(fastafn):
+    fasta_proteins = {}
+    sequence = []
+    accession = ''
+    header = ''
+    skip_entry = False
+    organism = ''
+    with open(fastafn,'r') as infile:
+        for line in infile:
+            if line[0]=='>':
+                skip_entry = False
+                #>NP_001012512.1 peptide chain release factor 1, mitochondrial [Danio rerio]
+                if sequence:
+                    if organism not in fasta_proteins:
+                        fasta_proteins[organism] = {}
+                    fasta_proteins[organism][accession] = {'seq':sequence,'header':header}
+                sequence = []
+                accession = line.strip()[1:].split()[0]
+                header = line.strip()
+                organism = re.search(r"\[.*?\]", header)[0]
+                organism = organism.replace('[','').replace(']','')
+                if organism not in scientific_names_list:
+                    skip_entry = True
+                    organism = ''
+                    accession = ''
+                    header = ''
+                    continue
+            else:
+                if skip_entry==False:
+                    sequence.append(line.strip())
+        if sequence:
+            if organism not in fasta_proteins:
+                fasta_proteins[organism] = {}
+            fasta_proteins[organism][accession] = {'seq':sequence,'header':header}
+    return fasta_proteins
+
+for fn in os.listdir(input_dir):
+    print(fn)
+    fasta_entries = readFasta_taxon(os.path.join(input_dir, fn))
+    for organism in fasta_entries:
+        taxon = sciname_to_taxon[organism]
+        outfn = os.path.join(fasta_directory, taxon+'_refseq.fasta')
+        if os.path.exists(outfn):
+            outfile = open(outfn,'a')
+        if not os.path.exists(outfn):
+            outfile = open(outfn,'w')
+        for accession in fasta_entries[organism]:
+            header = fasta_entries[organism][accession]['header']
+            seq = fasta_entries[organism][accession]['seq']
+            outfile.write(header+'\n')
+            outfile.write('\n'.join(seq)+'\n')
+        outfile.close()
+
+                                        
 print('prepare files for blast db creation...')
 combined_fn = os.path.join(blast_db_dir, 'Actinopterygii.fsa')
 map_fn = os.path.join(blast_db_dir, 'Actinopterygii_map.txt')
