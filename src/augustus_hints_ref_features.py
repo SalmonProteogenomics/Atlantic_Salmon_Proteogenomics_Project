@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+'''
+Author: Miin S. Lin
+Created: June 26, 2023
+'''
+
 import os 
 from parse_reference_files import ncbi_chrname_mapping
 

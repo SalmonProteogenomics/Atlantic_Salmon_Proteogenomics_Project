@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+'''
+Author: Miin S. Lin
+Created: June 26, 2023
+'''
+
 import argparse, os
 from ComputeFDR import Compute_FDR
 from collections import OrderedDict

@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+'''
+Author: Miin S. Lin
+Created: June 26, 2023
+'''
+
 import os
 import math
 import argparse

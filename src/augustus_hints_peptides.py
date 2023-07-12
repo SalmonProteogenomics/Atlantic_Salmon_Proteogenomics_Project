@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+'''
+Author: Miin S. Lin
+Created: June 26, 2023
+'''
+
 import os
 from parse_reference_files import salmosalar_genomic_fna,\
     combine_indices, readFasta, rev_comp, comp,\

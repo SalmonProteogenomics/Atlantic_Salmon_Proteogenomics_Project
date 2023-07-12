@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+'''
+Author: Miin S. Lin
+Created: June 26, 2023
+'''
+
 
 # Input should only have one PSM per scan.
 def Compute_FDR(psmlist, user_FDR, PSMscore_col, FDR_calc_score_direction, prot_col, decoy_prefix):
